@@ -3,7 +3,6 @@ import random
 
 class Objects():
     def __init__(self) -> None:
-        self.gameReseting = False # 正在重置游戏
         # screen
         self.padding = 50 # 填充
         self.screenWidth = 400 + self.padding * 2
@@ -15,8 +14,8 @@ class Objects():
         self.tempDamageObjects = [] # 可消除对象（红点）
 
         # merageobj（合并对象）
-        self.mergeObjWidthRange = (10,30)
-        self.mergeObjHeightRange = (10,30)
+        self.mergeObjWidthRange = (15,20)
+        self.mergeObjHeightRange = (15,20)
     
         self.MergeObjXRange = (self.padding + self.mergeObjWidthRange[1],
                             self.screenWidth - self.mergeObjWidthRange[1] - self.padding)
@@ -25,8 +24,8 @@ class Objects():
         self.MergeObjColor = "#5030e7"
 
         # damageobj（消除对象）
-        self.damageObjWidthRange = (10,50)
-        self.damageObjHeightRange = (10,50)
+        self.damageObjWidthRange = (5,50)
+        self.damageObjHeightRange = (5,50)
 
         self.DamageObjXRange = (self.padding + self.damageObjWidthRange[1],
                             self.screenWidth - self.damageObjWidthRange[1] - self.padding)
@@ -34,7 +33,7 @@ class Objects():
                             self.screenHeight - self.damageObjHeightRange[1] - self.padding)
         self.DamageObjColor = "#e27959"
 
-        self.mergeGenerateCount = 2
+        self.mergeGenerateCount = 1
         self.damageGenerateCount = 2 # 方块合并后产生的危险方块数
 
         # player
@@ -46,11 +45,16 @@ class Objects():
 
         self.gameMerageBlocks = 0
         self.gameMaxMerageBlocks = 0
+
+        self.limitMergeTime = 5
+        self.mergeTime = self.limitMergeTime
+
 obj = Objects()
 
 class Player(pygame.sprite.Sprite): # 白点
     def __init__(self,pos): # ,color
         pygame.sprite.Sprite.__init__(self)
+        self.pos = list(pos)
         w = random.randint(*obj.playerWidthRange)
         h = random.randint(*obj.playerHeightRange)
         self.image = pygame.Surface((w,h))
@@ -63,25 +67,50 @@ class Player(pygame.sprite.Sprite): # 白点
     def draw(self,aSurface):
         aSurface.blit(self.image,self.rect)
 
-class MergeItem(Player): # 合并方块
+
+class BaseItem(pygame.sprite.Sprite): # 白点
+    def __init__(self,pos): # ,color
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((1,1))
+        self.rect = self.image.get_rect(center=pos)     #rect外框，移动位置
+
+    def draw(self,aSurface):
+        aSurface.blit(self.image,self.rect)
+    
+    def setColor(self, color):
+        self.color = color
+        self.image.fill(color = self.color)
+    
+    def setPos(self, pos):
+        self.rect = self.image.get_rect(center=pos)
+
+class MergeItem(BaseItem): # 合并方块
     def __init__(self,pos):
         pygame.sprite.Sprite.__init__(self)
+        self.pos = list(pos)
+        self.color = obj.MergeObjColor
         w = random.randint(*obj.mergeObjWidthRange)
         h = random.randint(*obj.mergeObjHeightRange)
         self.image = pygame.Surface((w,h))
-        self.image.fill(color=obj.MergeObjColor)
+        self.image.fill(color = self.color)
         self.rect = self.image.get_rect(center=pos)     #rect外框，移动位置
 
-    # def draw(self,aSurface):
-    #     aSurface.blit(self.image,self.rect)
-
-class DamageItem(Player): # 消除方块
+class DamageItem(BaseItem): # 消除方块
     def __init__(self,pos):
         pygame.sprite.Sprite.__init__(self)
+        # color position
+        self.pos = list(pos)
+        self.color = obj.DamageObjColor
+        # move speed
+        self.speedx = random.randint(1,3) / 10
+        self.speedy = random.randint(1,3) / 10
+        # width
         w = random.randint(*obj.damageObjWidthRange)
         h = random.randint(*obj.damageObjHeightRange)
         self.image = pygame.Surface((w,h))
-        self.image.fill(color=obj.DamageObjColor)           
+        # color
+        self.image.fill(color = self.color)           
+        # pos
         self.rect = self.image.get_rect(center=pos)     #rect外框，移动位置
 
 pygame.init()
@@ -98,21 +127,30 @@ damagesound.set_volume(0.3)
 
 import threading
 import time
-def itemMove(): # 跟随白点移动
+def playerMove(): # 跟随白点移动
     while True:
         if obj.playerFast:
             obj.playerMoveStep = 3
         else:
             obj.playerMoveStep = 1
+
+        x = 0
+        y = 0
+
+        for key in exevent.downKeyValue:
+            if key == pygame.K_RIGHT:
+                x = obj.playerMoveStep
+            elif key == pygame.K_LEFT:
+                x = -obj.playerMoveStep
+            if key == pygame.K_UP:
+                y = -obj.playerMoveStep
+            elif key == pygame.K_DOWN:
+                y = obj.playerMoveStep
+
         for o in obj.selectObjects:
-            if exevent.downKeyValue == pygame.K_RIGHT:
-                o.rect.x += obj.playerMoveStep
-            elif exevent.downKeyValue == pygame.K_LEFT:
-                o.rect.x -= obj.playerMoveStep
-            elif exevent.downKeyValue == pygame.K_UP:
-                o.rect.y -= obj.playerMoveStep
-            elif exevent.downKeyValue == pygame.K_DOWN:
-                o.rect.y += obj.playerMoveStep
+            o.rect.x += x
+            o.rect.y += y
+
         time.sleep(0.02)
 
 def mergeEvent(): # 合并消除时间
@@ -123,7 +161,6 @@ def mergeEvent(): # 合并消除时间
                     # 将临时的合并块加入到selectobjects的整体中
                     mergesound.play() # 播放音频
                     obj.selectObjects.append(i)
-                    if obj.gameReseting: return # 多线程带来的问题,好像并不能解决
                     obj.tempMergeObjects.remove(i) 
                     for i in range(obj.damageGenerateCount):
                         newObject("damage") # 合并后新增一个危险块
@@ -132,27 +169,77 @@ def mergeEvent(): # 合并消除时间
                     # ==
                     obj.gameMerageBlocks += 1 # 合并方块总数
                     obj.gameMaxMerageBlocks = max(len(obj.selectObjects), obj.gameMaxMerageBlocks) # 最大的合并数
+                    #==
+                    obj.mergeTime = obj.limitMergeTime # 重置合并时间
                     break
         for i in obj.tempDamageObjects: # 危险检查
             for j in obj.selectObjects:
                 if pygame.sprite.collide_rect(i, j):
+                    if isinstance(i, Player):
+                        gameFinish() # 玩家（白点）碰到就算游戏结束
+                        return
                     damagesound.play()
-                    if obj.gameReseting: return # 多线程带来的问题,好像并不能解决
                     obj.tempDamageObjects.remove(i) # 移除被碰到的危险块
                     # 移除一半的方块（注：此处可以更改消除的比例，是消除一个-1还是消除一遍//2）
-                    obj.selectObjects = obj.selectObjects[:len(obj.selectObjects) // 2]
+                    obj.selectObjects = obj.selectObjects[:len(obj.selectObjects) - 1]
                     break
         if len(obj.selectObjects) == 0:
             gameFinish()
+            return
+        if obj.mergeTime < 0:
+            gameFinish()
+            return
         time.sleep(0.01)
+
+def damgeMove():
+    while True:
+        for i in obj.tempDamageObjects:
+            # if not getattr(i, "speedx", None):
+            #     setattr(i, "speedx", random.randint(1,3) / 10)
+            #     setattr(i, "speedy", random.randint(1,3) / 10)
+            i.pos[0] += i.speedx
+            i.pos[1] += i.speedy
+            if i.pos[0] > obj.DamageObjXRange[1] or i.pos[0] < obj.DamageObjXRange[0]:
+                i.speedx = -i.speedx
+            if i.pos[1] > obj.DamageObjYRange[1] or i.pos[1] < obj.DamageObjYRange[0]:
+                i.speedy = -i.speedy
+            # w = random.randint(*obj.playerWidthRange)
+            # h = random.randint(*obj.playerHeightRange)
+            # i.image = pygame.Surface((w,h))
+            i.setPos(i.pos)
+        time.sleep(0.01)
+
+def damageColorChange(): # 定时更改颜色
+    while True:
+        obj.DamageObjColor = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+        for i in obj.tempDamageObjects:  # 更改damage样式
+            i.setColor(obj.DamageObjColor)
+        time.sleep(random.randint(10,20))
+
+def timing(): # 1秒的限时器
+    while True:
+        obj.mergeTime -= 1 # 合并时间限制
+        time.sleep(1)
+
 
 class ExpandEvents():
     def __init__(self) -> None:
-        self.downKeyValue = None # 实现长按功能（记录按下的键）
-        self.itemMoveThread = threading.Thread(target=itemMove)
-        self.mergeEventThread = threading.Thread(target=mergeEvent)
-        self.itemMoveThread.start()
-        self.mergeEventThread.start()
+        self.downKeyValue = [] # 实现长按功能（记录按下的键）
+        self.eventName = ["playerMove", "mergeEvent", "damgeMove", "timing", "damageColorChange"]
+        self.events = [playerMove, mergeEvent, damgeMove, timing, damageColorChange]
+        for index, name in enumerate(self.eventName):
+            self.__dict__[name] = threading.Thread(target=self.events[index])
+            
+    def starts(self):
+        for name in self.eventName:
+            if not self.__dict__[name].is_alive():
+                self.__dict__[name].start()
+
+    def startof(self, name):
+        if name in self.eventName:
+            self.__dict__[name] = threading.Thread(target=self.events[self.eventName.index(name)])
+            self.__dict__[name].start()
+
 
 exevent = ExpandEvents()
 
@@ -199,15 +286,18 @@ def newObject(blocktype):
     return False
 
 def gameinit(): # 初始化游戏
-    obj.gameReseting = True
+    del obj.selectObjects,obj.tempMergeObjects,obj.tempDamageObjects
     obj.selectObjects = [] # 跟随移动对象
     obj.selectObjects.append(Player((obj.screenWidth // 2, obj.screenHeight // 2)))
     obj.tempMergeObjects = [] # 蓝色方块
     obj.tempDamageObjects = [] # 红色方块
     newObject("merge")
-    obj.gameReseting = False
+    obj.mergeTime = obj.limitMergeTime
+    exevent.startof("mergeEvent")
 
 gameinit()
+exevent.starts()
+
 def gameFinish(): # 结束游戏
     print ("共连接了%d个方块, 最大方块连接数：%d个"%(obj.gameMerageBlocks, obj.gameMaxMerageBlocks))
     gameinit()
@@ -220,12 +310,13 @@ while run:
 
         if event.type==pygame.KEYDOWN:            #如是键按下事件
             if event.key in [pygame.K_RIGHT, pygame.K_LEFT, pygame.K_UP, pygame.K_DOWN]:
-                exevent.downKeyValue = event.key
+                exevent.downKeyValue.append(event.key)
             if event.key in [pygame.K_LCTRL,pygame.K_RCTRL]: # 加速移动
                 obj.playerFast = True
 
         if event.type==pygame.KEYUP: # 松开后就按键清空
-            exevent.downKeyValue = None
+            if event.key in [pygame.K_RIGHT, pygame.K_LEFT, pygame.K_UP, pygame.K_DOWN]:
+                exevent.downKeyValue.remove(event.key)
             if event.key in [pygame.K_LCTRL,pygame.K_RCTRL]: # 取消加速
                 obj.playerFast = False
   
