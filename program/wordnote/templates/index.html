@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <script src="../static/jquery.min.js" type="text/javascript"></script>
+        <link href="../static/index.css" type="text/css" rel="stylesheet">
+        <link href="../static/jquery-ui.css" type="text/css" rel="stylesheet">
+        <title>wordNote</title>
+    </head>
+
+    <body>
+
+        <input type="text" class="word" placeholder="word">
+        <hr>
+        <textarea class="tip"></textarea>
+        <textarea class="usage"></textarea>
+        <p class="states"></p>
+
+        <div class="tool">
+            <button class = "findWord" onclick="findWord()">查找单词(\w)</button>
+            <button class = "changeUsage" onclick="changeUsage()">修改注解(\f)</button>
+            <button class = "deleteWord" onclick="deleteWord()">删除单词(\p)</button>
+            <button class = "breakChange" onclick="breakChange()">撤回操作(\u)</button>
+        </div>
+
+        <script src="../static/index.js" type="text/javascript"></script>
+    </body>
+</html>

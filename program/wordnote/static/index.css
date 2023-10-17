@@ -1,0 +1,61 @@
+body{
+    background-color: rgb(244, 244, 244);
+}
+
+/* 单词 */
+.word{
+    width: 30%;
+    display: block;
+    margin-top: 6rem;
+    margin-left: 35%;
+    margin-bottom: 0.3rem;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+/* 提示 */
+.tip{
+    width: 60%;
+    margin-left: 20%;
+    height: 3rem;
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    
+}
+
+/* 注解 */
+.usage{
+    width: 60%;
+    margin-left: 20%;
+    height: 8rem;
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+
+.tool{
+    position: absolute;
+    left: 80%;
+    top: 30%;
+    margin-top: 0.3rem;
+}
+
+/* 操作按键 */
+button{
+    display: block;
+    margin-bottom: 0.2rem;
+    width: 6rem;
+    height: 2rem;
+}
+
+/* 操作状态 */
+.states{
+    display: block;
+    margin-left: 20%;
+}
+
+/* 多行文本框不能改变大小 */
+textarea{
+    resize: none;
+}
